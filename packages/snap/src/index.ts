@@ -4,7 +4,7 @@ import {
   // add_random,
   add_random_with_seed
 } from 'wasm-bundler';
-import { getRandomBytes } from '../random';
+import { getRandomBytes } from './random';
 
 import { initializeWasm } from './wasm';
 
