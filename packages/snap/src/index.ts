@@ -1,4 +1,10 @@
 import { OnRpcRequestHandler } from '@metamask/snap-types';
+import { InitOutput } from 'wasm-bundler';
+
+import { initializeWasm } from './wasm';
+
+
+let wasm: InitOutput;
 
 /**
  * Get a message from the origin. For demonstration purposes only.
@@ -21,6 +27,10 @@ export const getMessage = (originString: string): string =>
  * @throws If the `snap_confirm` call failed.
  */
 export const onRpcRequest: OnRpcRequestHandler = ({ origin, request }) => {
+  if (!wasm) {
+    wasm = await initializeWasm();
+  }
+
   switch (request.method) {
     case 'hello':
       return wallet.request({

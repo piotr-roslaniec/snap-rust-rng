@@ -14,7 +14,8 @@
   "license": "(MIT-0 OR Apache-2.0)",
   "author": "",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "rust-rng/pkg"
   ],
   "scripts": {
     "build": "yarn workspaces foreach --parallel --topological --verbose run build",

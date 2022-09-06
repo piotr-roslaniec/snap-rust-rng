@@ -15,16 +15,20 @@
     "snap.manifest.json"
   ],
   "scripts": {
-    "build": "mm-snap build",
-    "build:clean": "yarn clean && yarn build",
     "build:website": "node ./scripts/build-website.js",
-    "clean": "rimraf dist",
+    "serve": "mm-snap serve",
+    "start": "yarn build && mm-snap watch",
+    "dev": "yarn build && nodemon --watch src/ --ext ts --ignore src/wasm.ts --exec 'yarn serve'",
+    "build": "yarn clean && yarn build:wasm && yarn build:tsc && mm-snap build --verboseErrors && cp snap.manifest.json dist/",
+    "build:tsc": "tsc",
+    "build:wasm": "node ./scripts/wasm-encode.js && du src/wasm_*",
+    "build:clean": "rm -rf node_modules/wasm-bundler && yarn install --check-files && yarn clean && yarn build",
+    "clean": "rimraf dist build",
     "lint": "yarn lint:eslint && yarn lint:misc --check",
     "lint:eslint": "eslint . --cache --ext js,ts",
-    "lint:fix": "yarn lint:eslint --fix && yarn lint:misc --write",
     "lint:misc": "prettier '**/*.json' '**/*.md' '!CHANGELOG.md' --ignore-path .gitignore",
-    "serve": "mm-snap serve",
-    "start": "mm-snap watch"
+    "lint:fix": "yarn lint:eslint --fix && yarn lint:misc --write",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@lavamoat/allow-scripts": "^2.0.3",
@@ -47,7 +51,8 @@
     "prettier": "^2.2.1",
     "prettier-plugin-packagejson": "^2.2.11",
     "rimraf": "^3.0.2",
-    "typescript": "^4.7.4"
+    "typescript": "^4.7.4",
+    "wasm-bundler": "workspace:*"
   },
   "packageManager": "yarn@3.2.1",
   "engines": {
