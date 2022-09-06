@@ -59,17 +59,27 @@ export const isSnapInstalled = async (version?: string): Promise<boolean> => {
   }
 };
 
-/**
- * Invoke the "hello" method from the example snap.
- */
-
-export const sendHello = async () => {
-  await window.ethereum.request({
+export const addRandom = async (x: number) => {
+  return await window.ethereum.request({
     method: 'wallet_invokeSnap',
     params: [
       defaultSnapOrigin,
       {
-        method: 'hello',
+        method: 'add_random',
+        params: [x],
+      },
+    ],
+  });
+};
+
+export const addRandomWithSeed = async (x: number) => {
+  return await window.ethereum.request({
+    method: 'wallet_invokeSnap',
+    params: [
+      defaultSnapOrigin,
+      {
+        method: 'add_random_with_seed',
+        params: [x],
       },
     ],
   });

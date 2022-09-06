@@ -1,7 +1,13 @@
 import { useContext } from 'react';
 import styled from 'styled-components';
 import { MetamaskActions, MetaMaskContext } from '../hooks';
-import { connectSnap, isSnapInstalled, sendHello } from '../utils';
+import {
+  connectSnap,
+  isSnapInstalled,
+  // Uncomment in order to reproduce the original error
+  // addRandom,
+  addRandomWithSeed,
+} from '../utils';
 import { ConnectButton, InstallFlaskButton, SendHelloButton } from './Buttons';
 import { Card } from './Card';
 
@@ -107,9 +113,24 @@ export const Home = () => {
     }
   };
 
-  const handleSendHelloClick = async () => {
+  // Uncomment in order to reproduce the original error
+  // const handleAddRandom = async () => {
+  //   try {
+  //     const result = await addRandom(2);
+  //     // This is going to crash, so we're not going to do anything with the result
+  //     // eslint-disable-next-line no-alert
+  //     alert(`Result: ${result}`);
+  //   } catch (e) {
+  //     console.error(e);
+  //     dispatch({ type: MetamaskActions.SetError, payload: e });
+  //   }
+  // };
+
+  const handleAddRandomWithSeed = async () => {
     try {
-      await sendHello();
+      const result = await addRandomWithSeed(2);
+      // eslint-disable-next-line no-alert
+      alert(`Result: ${result}`);
     } catch (e) {
       console.error(e);
       dispatch({ type: MetamaskActions.SetError, payload: e });
@@ -157,14 +178,31 @@ export const Home = () => {
             disabled={!state.isFlask}
           />
         )}
-        <Card
+        {/* Uncomment in order to reproduce the original error */}
+        {/* <Card
           content={{
-            title: 'Send Hello message',
+            title: 'Add random number',
             description:
-              'Display a custom message within a confirmation screen in MetaMask.',
+              'Attempt to use a `rand` crate to compute 2 + random number.',
             button: (
               <SendHelloButton
-                onClick={handleSendHelloClick}
+                onClick={handleAddRandom}
+                disabled={!state.isSnapInstalled}
+              />
+            ),
+          }}
+          disabled={!state.isSnapInstalled}
+          fullWidth={state.isFlask && state.isSnapInstalled}
+        /> */}
+
+        <Card
+          content={{
+            title: 'Add random number using seed',
+            description:
+              'Attempt to use a browser provided randomness to compute 2 + random number.',
+            button: (
+              <SendHelloButton
+                onClick={handleAddRandomWithSeed}
                 disabled={!state.isSnapInstalled}
               />
             ),

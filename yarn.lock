@@ -15274,8 +15274,8 @@ __metadata:
 
 "rust-rng@file:../../rust-rng/pkg::locator=wasm-bundler%40workspace%3Apackages%2Fwasm-bundler":
   version: 0.1.0
-  resolution: "rust-rng@file:../../rust-rng/pkg#../../rust-rng/pkg::hash=de8d9c&locator=wasm-bundler%40workspace%3Apackages%2Fwasm-bundler"
-  checksum: 640ec463d96979c24a9b29bd8617de6d8f65c01db49198e81be223477345cd8250c611a13f91e14db41070a1f92cd4601a67e0b67467d50a64a080fe42ad9113
+  resolution: "rust-rng@file:../../rust-rng/pkg#../../rust-rng/pkg::hash=ab0eee&locator=wasm-bundler%40workspace%3Apackages%2Fwasm-bundler"
+  checksum: a8340f0e60664a83cbd10b256f6e131d644f755cc7bc09b0dc80912c52ec8b4085dee3be57f0b241e442c218b490e9d398f1c8073f13d27ca5b0e3f524ff5260
   languageName: node
   linkType: hard
 
