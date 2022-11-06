@@ -1,4 +1,4 @@
-use rand::{rngs::StdRng, Rng, SeedableRng};
+use rand::{rngs::{StdRng, OsRng}, Rng, SeedableRng, RngCore};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -11,11 +11,10 @@ pub fn add_random_with_seed(left: u32, rng_seed: &[u8]) -> u32 {
 }
 
 // Uncomment in order to reproduce the original error
-// #[wasm_bindgen]
+#[wasm_bindgen]
 pub fn add_random(left: u32) -> u32 {
     console_error_panic_hook::set_once();
-    let rng = &mut StdRng::from_entropy();
-    let right = rng.gen::<u32>();
+    let right = OsRng.next_u32();
     left + right
 }
 
