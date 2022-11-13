@@ -52,7 +52,7 @@
     "prettier-plugin-packagejson": "^2.2.11",
     "rimraf": "^3.0.2",
     "typescript": "^4.7.4",
-    "wasm-bundler": "workspace:*"
+    "wasm-bundler": "../../rust-rng/pkg"
   },
   "packageManager": "yarn@3.2.1",
   "engines": {
