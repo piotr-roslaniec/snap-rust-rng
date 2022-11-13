@@ -25,12 +25,12 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const wasmPkgPath = path.join(__dirname, '..', 'pkg');
+const wasmPkgPath = path.join(__dirname, '..', '..', 'rust-rng', 'pkg');
 const wasmDataPath = path.join(wasmPkgPath, 'rust_rng_bg.wasm');
 const wasmOutputPath = path.join(wasmPkgPath, 'wasm');
 
 if (!fs.existsSync(wasmOutputPath)) {
-  fs.mkdirSync(wasmOutputPath);
+    fs.mkdirSync(wasmOutputPath);
 }
 
 // At the time of writing, there is unfortunately no standard cross-platform solution to the
@@ -48,28 +48,27 @@ let imports = '';
 let fileNum = 0;
 let chunksSum = '""';
 while (base64Data.length !== 0) {
-  const chunk = base64Data.slice(0, (1024 * 1024) / 4);
-  // const chunk = base64Data.slice(0, 1024 * 1024);
-  // We could simply export the chunk instead of a function that returns the chunk, but that
-  // would cause TypeScript to generate a definitions file containing a copy of the entire chunk.
-  fs.writeFileSync(
-    path.join(wasmOutputPath, `${fileNum}.ts`),
-    `export default function(): string { return "${chunk}"; }`,
-  );
+    const chunk = base64Data.slice(0, (1024 * 1024) / 4);
+    // const chunk = base64Data.slice(0, 1024 * 1024);
+    // We could simply export the chunk instead of a function that returns the chunk, but that
+    // would cause TypeScript to generate a definitions file containing a copy of the entire chunk.
+    fs.writeFileSync(
+        path.join(wasmOutputPath, `wasm${fileNum}.js`),
+        `export default function(): string { return "${chunk}"; }`,
+    );
 
-  imports += `import { default as wasm${fileNum} } from './wasm${fileNum}.js';\n`;
-  chunksSum += ` + wasm${fileNum}()`;
-  fileNum += 1;
-  base64Data = base64Data.slice(1024 * 1024);
+    imports += `import { default as wasm${fileNum} } from './wasm${fileNum}.js';\n`;
+    chunksSum += ` + wasm${fileNum}()`;
+    fileNum += 1;
+    base64Data = base64Data.slice(1024 * 1024);
 }
 
 fs.writeFileSync(
-  path.join(wasmOutputPath, 'wasm.ts'),
-  `${imports}export default ${chunksSum}`,
+    path.join(wasmOutputPath, 'index.js'),
+    `${imports}export default ${chunksSum}`,
 );
 
-let originalLoadFunc = `
-async function load(module, imports) {
+let originalLoadFunc = `async function load(module, imports) {
   if (typeof Response === 'function' && module instanceof Response) {
       if (typeof WebAssembly.instantiateStreaming === 'function') {
           try {
@@ -100,36 +99,60 @@ async function load(module, imports) {
   }
 }`;
 
-let importStatements = `
-import { default as wasmBase64 } from './wasm/wasm.ts';
+let importStatements = `const wasmBase64 = require('./wasm/wasm.js');
 `;
 
-let wasmLoadFunc = `
-async function load(module, imports) {
-  // Reference: https://stackoverflow.com/a/41106346/2649048
-  // TODO: Replace call to deprecated Buffer API
-  const arrayBufferFromBase64 = (base64String) => Uint8Array.from(atob(base64String), (c) => c.charCodeAt(0));
-      
-  const wasmBytecode = arrayBufferFromBase64(wasmBase64);
-  const instance = await WebAssembly.instantiate(wasmBytecode, imports);
-
-  if (instance instanceof WebAssembly.Instance) {
-      return { instance, module };
-  } else {
-      return instance;
-  }
+let wasmLoadFunc = `async function load(module, imports) {
+    // Reference: https://stackoverflow.com/a/41106346/2649048
+    // TODO: Replace call to deprecated Buffer API
+    const arrayBufferFromBase64 = (base64String) => Uint8Array.from(atob(base64String), (c) => c.charCodeAt(0));
+        
+    const wasmBytecode = arrayBufferFromBase64(wasmBase64);
+    const instance = await WebAssembly.instantiate(wasmBytecode, imports);
+    return instance;
 }
 `;
 
 const wasmJsWrapper = path.join(wasmPkgPath, 'rust_rng.js');
 let jsWrapperContent = fs.readFileSync(wasmJsWrapper, 'utf8');
 
-// TODO: This doesn't correctly replace the load function
-jsWrapperContent = jsWrapperContent.replace(originalLoadFunc, wasmLoadFunc);
+// jsWrapperContent = jsWrapperContent.replace(originalLoadFunc, wasmLoadFunc);
 
-jsWrapperContent = `${importStatements}\n${jsWrapperContent}`;
+// jsWrapperContent = `${importStatements}\n${jsWrapperContent}`;
 
-fs.writeFileSync(
-  wasmJsWrapper,
-  jsWrapperContent,
-);
+// fs.writeFileSync(
+//   wasmJsWrapper,
+//   jsWrapperContent,
+// );
+
+import { parse } from '@babel/parser';
+import traversePkg from '@babel/traverse';
+const { default: traverse } = traversePkg;
+import generatePkg from '@babel/generator';
+const { default: generate } = generatePkg;
+import { FunctionDeclaration, isFunctionDeclaration } from '@babel/types';
+
+
+
+const ast = parse(jsWrapperContent, { sourceType: 'module' });
+
+traverse(ast, {
+    enter(path) {
+        const { node } = path;
+        if (isFunctionDeclaration(node) && node.id.name === 'load') {
+            // console.log({ node });
+            // console.log({ node: node.body.body });
+            const newDeclaration = parse(wasmLoadFunc, { sourceType: 'module' });
+            // console.log({newDeclaration: newDeclaration.program.body[0].body.body});
+            node.body.body = newDeclaration.program.body[0].body.body
+            // path.replaceWith(newDeclaration);
+        }
+    }
+});
+
+const { code: transformedCode } = generate(ast); // 1
+
+console.log({ transformedCode });
+
+// const outputPath = joinPath( __dirname, 'output.js' );
+// writeFileSync( outputPath, transformedCode, 'utf8' ); // 3
