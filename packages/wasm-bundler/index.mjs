@@ -27,7 +27,7 @@ const __dirname = path.dirname(__filename);
 
 const wasmPkgPath = path.join(__dirname, '..', '..', 'rust-rng', 'pkg');
 const wasmDataPath = path.join(wasmPkgPath, 'rust_rng_bg.wasm');
-const wasmOutputPath = path.join(wasmPkgPath, 'wasm');
+const wasmOutputPath = path.join(__dirname, 'wasm');
 
 if (!fs.existsSync(wasmOutputPath)) {
     fs.mkdirSync(wasmOutputPath);
@@ -43,18 +43,19 @@ if (!fs.existsSync(wasmOutputPath)) {
 // files that are more than 4 MiB, we have to split our base64-encoded deflate-encoded wasm
 // into multiple small size files.
 const wasmData = fs.readFileSync(wasmDataPath);
-let base64Data = zlib.deflateSync(wasmData).toString('base64');
+// TODO: maybe enable deflate require modicition in wasmLoadFunc
+// let base64Data = zlib.deflateSync(wasmData).toString('base64');
+let base64Data = wasmData.toString('base64');
 let imports = '';
 let fileNum = 0;
 let chunksSum = '""';
 while (base64Data.length !== 0) {
-    const chunk = base64Data.slice(0, (1024 * 1024) / 4);
-    // const chunk = base64Data.slice(0, 1024 * 1024);
+    const chunk = base64Data.slice(0, 1024 * 1024);
     // We could simply export the chunk instead of a function that returns the chunk, but that
     // would cause TypeScript to generate a definitions file containing a copy of the entire chunk.
     fs.writeFileSync(
         path.join(wasmOutputPath, `wasm${fileNum}.js`),
-        `export default function(): string { return "${chunk}"; }`,
+        `export default function() { return "${chunk}"; }`,
     );
 
     imports += `import { default as wasm${fileNum} } from './wasm${fileNum}.js';\n`;
@@ -68,39 +69,8 @@ fs.writeFileSync(
     `${imports}export default ${chunksSum}`,
 );
 
-let originalLoadFunc = `async function load(module, imports) {
-  if (typeof Response === 'function' && module instanceof Response) {
-      if (typeof WebAssembly.instantiateStreaming === 'function') {
-          try {
-              return await WebAssembly.instantiateStreaming(module, imports);
 
-          } catch (e) {
-              if (module.headers.get('Content-Type') != 'application/wasm') {
-                  console.warn("\`WebAssembly.instantiateStreaming\` failed because your server does not serve wasm with \`application/wasm\` MIME type. Falling back to \`WebAssembly.instantiate\` which is slower. Original error:\n", e);
-
-              } else {
-                  throw e;
-              }
-          }
-      }
-
-      const bytes = await module.arrayBuffer();
-      return await WebAssembly.instantiate(bytes, imports);
-
-  } else {
-      const instance = await WebAssembly.instantiate(module, imports);
-
-      if (instance instanceof WebAssembly.Instance) {
-          return { instance, module };
-
-      } else {
-          return instance;
-      }
-  }
-}`;
-
-let importStatements = `const wasmBase64 = require('./wasm/wasm.js');
-`;
+let importStatements = `import wasmBase64 from './wasm/index.js';\n`;
 
 let wasmLoadFunc = `async function load(module, imports) {
     // Reference: https://stackoverflow.com/a/41106346/2649048
@@ -113,25 +83,16 @@ let wasmLoadFunc = `async function load(module, imports) {
 }
 `;
 
-const wasmJsWrapper = path.join(wasmPkgPath, 'rust_rng.js');
-let jsWrapperContent = fs.readFileSync(wasmJsWrapper, 'utf8');
+const wasmJsWrapperPath = path.join(wasmPkgPath, 'rust_rng.js');
+let jsWrapperContent = fs.readFileSync(wasmJsWrapperPath, 'utf8');
 
-// jsWrapperContent = jsWrapperContent.replace(originalLoadFunc, wasmLoadFunc);
-
-// jsWrapperContent = `${importStatements}\n${jsWrapperContent}`;
-
-// fs.writeFileSync(
-//   wasmJsWrapper,
-//   jsWrapperContent,
-// );
 
 import { parse } from '@babel/parser';
 import traversePkg from '@babel/traverse';
 const { default: traverse } = traversePkg;
 import generatePkg from '@babel/generator';
 const { default: generate } = generatePkg;
-import { FunctionDeclaration, isFunctionDeclaration } from '@babel/types';
-
+import { isFunctionDeclaration } from '@babel/types';
 
 
 const ast = parse(jsWrapperContent, { sourceType: 'module' });
@@ -140,19 +101,16 @@ traverse(ast, {
     enter(path) {
         const { node } = path;
         if (isFunctionDeclaration(node) && node.id.name === 'load') {
-            // console.log({ node });
-            // console.log({ node: node.body.body });
             const newDeclaration = parse(wasmLoadFunc, { sourceType: 'module' });
-            // console.log({newDeclaration: newDeclaration.program.body[0].body.body});
             node.body.body = newDeclaration.program.body[0].body.body
-            // path.replaceWith(newDeclaration);
+        }
+        if (isFunctionDeclaration(node) && node.id.name === 'init') {
+            node.body.body[2] = parse("");
         }
     }
 });
 
 const { code: transformedCode } = generate(ast); // 1
 
-console.log({ transformedCode });
 
-// const outputPath = joinPath( __dirname, 'output.js' );
-// writeFileSync( outputPath, transformedCode, 'utf8' ); // 3
+fs.writeFileSync(wasmJsWrapperPath, importStatements + transformedCode, 'utf8' ); // 3
