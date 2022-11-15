@@ -17247,8 +17247,8 @@ __metadata:
 
 "wasm-bundler@file:../../rust-rng/pkg::locator=snap%40workspace%3Apackages%2Fsnap":
   version: 0.1.0
-  resolution: "wasm-bundler@file:../../rust-rng/pkg#../../rust-rng/pkg::hash=cfacf5&locator=snap%40workspace%3Apackages%2Fsnap"
-  checksum: 3b3719d1acc7a91297b185fb1d90478bca8f82801d43234f9b7f3ef5679bda63e7957c4be6527f71ac11eff153cb89c1889c01fa68c452e7497d51ca1e9a899c
+  resolution: "wasm-bundler@file:../../rust-rng/pkg#../../rust-rng/pkg::hash=59c987&locator=snap%40workspace%3Apackages%2Fsnap"
+  checksum: 7911924456eb0feee04a3b807529e696922de51f1951d7c26e5551487cef15d4faab069d0de8fd61723cf59fb9d96a230ff4d25f45aec8c730613eb7219da8e0
   languageName: node
   linkType: hard
 
