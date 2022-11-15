@@ -78,7 +78,7 @@ export const addRandomWithSeed = async (x: number) => {
     params: [
       defaultSnapOrigin,
       {
-        method: 'add_random_with_seed',
+        method: 'add',
         params: [x],
       },
     ],
