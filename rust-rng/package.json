@@ -2,6 +2,7 @@
   "name": "wasm-bundler",
   "version": "0.1.0",
   "description": "A bundler for wasm-pack bundlers",
+  "type": "module",
   "main": "dist/index.cjs.js",
   "module": "dist/index.es.js",
   "browser": "dist/index.js",
