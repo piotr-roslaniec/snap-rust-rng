@@ -1,6 +1,6 @@
+#!/usr/bin/env node
 // Adopted from: https://github.com/paritytech/smoldot/blob/main/bin/wasm-node/javascript/prepare.mjs
 
-// Smoldot
 // Copyright (C) 2019-2022  Parity Technologies (UK) Ltd.
 // SPDX-License-Identifier: GPL-3.0-or-later WITH Classpath-exception-2.0
 
@@ -19,83 +19,69 @@
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import * as zlib from 'node:zlib';
 import { execSync } from 'node:child_process';
-import { parse } from '@babel/parser';
-import traversePkg from '@babel/traverse';
-const { default: traverse } = traversePkg;
-import generatePkg from '@babel/generator';
-const { default: generate } = generatePkg;
-import { isFunctionDeclaration } from '@babel/types';
-import { fileURLToPath } from 'url';
+import * as toml from 'toml';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __dirname = process.cwd();
+const PROJECT_NAME = toml.parse(fs.readFileSync(path.join(__dirname, 'Cargo.toml'))).package.name.replace('-', '_');
 
 const BUILD_DIR = path.join(__dirname, "dist");
-const WASM_PACK_OUTPUT = path.join(BUILD_DIR, 'wasm-pack');
-const WASM_PACK_WASM = path.join(WASM_PACK_OUTPUT, 'rust_rng_bg.wasm');
-const WASM_PACK_JS_GLUE = path.join(WASM_PACK_OUTPUT, 'rust_rng.js');
+const WASM_PACK_WASM = path.join(BUILD_DIR, `${PROJECT_NAME}_bg.wasm`);
+const WASM_PACK_ENTRYPOINT = path.join(BUILD_DIR, `${PROJECT_NAME}.js`);
+const WASM_PACK_DEFS = path.join(BUILD_DIR, `${PROJECT_NAME}.d.ts`);
 const WASM_OUTPUT_DIR = path.join(BUILD_DIR, 'wasm');
-const RESULT_PATH = path.join(WASM_PACK_OUTPUT, 'rust_rng.js');
+const RESULT_PATH = path.join(BUILD_DIR, `${PROJECT_NAME}.js`);
 const WASM_CHUNK_SIZE = 1024 * 1024;
 
+console.log("Cleaning dir")
 clearDir();
+console.log("Packing with wasm-pack")
 wasmPackBuild();
+console.log("Bundling")
 wasmIt();
+console.log("Bundling all together")
 bundleJs();
 
 function clearDir() {
-  execSync(`rm -rf ${BUILD_DIR}`);
+  fs.rmSync(BUILD_DIR, { recursive: true, force: true })
 }
 
-// TODO: is release
+// TODO: allow to choose between --release and --debug
 function wasmPackBuild() {
-  execSync(`wasm-pack build --release --target web -d ${WASM_PACK_OUTPUT}`);
+  execSync(`npx wasm-pack build --release --target web -d ${BUILD_DIR}`)
 }
 
 function bundleJs() {
-  execSync(`npx rollup -c`)
+  execSync(`npx rollup -i ${WASM_PACK_ENTRYPOINT} --exports named -o ${RESULT_PATH} --name ${PROJECT_NAME} -f umd -p @rollup/plugin-node-resolve -p @rollup/plugin-commonjs`)
 }
 
 function wasmIt() {
   createAndSaveWasmChunks();
 
-  const importStatements = `import wasmBase64 from '../wasm/index.js';\n`;
+  const importStatements = `import wasmBase64 from './wasm/index.js';\n`;
 
-  const wasmLoadFunc = `async function load(module, imports) {
-    // Reference: https://stackoverflow.com/a/41106346/2649048
-    // TODO: Replace call to deprecated Buffer API
+  const initUnit = `
+  exports.init = async function uniInit() {
+    const imports = getImports();
+
     const arrayBufferFromBase64 = (base64String) => Uint8Array.from(atob(base64String), (c) => c.charCodeAt(0));
-        
     const wasmBytecode = arrayBufferFromBase64(wasmBase64);
-    const instance = await WebAssembly.instantiate(wasmBytecode, imports);
-    return instance;
+    const { instance, module } = await WebAssembly.instantiate(wasmBytecode, imports);
+
+    return finalizeInit(instance, module);
+  }
+  `;
+
+  const initOrig = `export default function init`;
+  const initNoDefault = `export function init`;
+
+  const defs = fs.readFileSync(WASM_PACK_DEFS, 'utf-8');
+  fs.writeFileSync(WASM_PACK_DEFS, defs.replace(initOrig, initNoDefault));
+
+  const jsWrapperContent = fs.readFileSync(WASM_PACK_ENTRYPOINT, 'utf8');
+
+  fs.writeFileSync(RESULT_PATH, importStatements + jsWrapperContent + initUnit, 'utf8');
 }
-`;
-
-  const jsWrapperContent = fs.readFileSync(WASM_PACK_JS_GLUE, 'utf8');
-  const ast = parse(jsWrapperContent, { sourceType: 'module' });
-
-  traverse(ast, {
-    enter(path) {
-      const { node } = path;
-      if (isFunctionDeclaration(node) && node.id.name === 'load') {
-        const newDeclaration = parse(wasmLoadFunc, { sourceType: 'module' });
-        node.body.body = newDeclaration.program.body[0].body.body
-      }
-      if (isFunctionDeclaration(node) && node.id.name === 'init') {
-        node.body.body[2] = parse("");
-      }
-    }
-  });
-
-  const { code: transformedCode } = generate(ast);
-
-
-  fs.writeFileSync(RESULT_PATH, importStatements + transformedCode, 'utf8');
-}
-
 
 // TODO: writes can be async
 function createAndSaveWasmChunks() {

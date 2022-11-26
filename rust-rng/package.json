@@ -12,7 +12,10 @@
     "build": "rollup -c"
   },
   "license": "GPL-3.0",
-  "dependencies": {},
+  "dependencies": {
+    "toml": "^3.0.0",
+    "uni-wasm": "^1.0.3"
+  },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^22.0.0",
     "@rollup/plugin-node-resolve": "^13.1.3",

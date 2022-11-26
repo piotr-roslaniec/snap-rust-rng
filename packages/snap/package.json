@@ -15,13 +15,11 @@
     "snap.manifest.json"
   ],
   "scripts": {
-    "build:website": "node ./scripts/build-website.js",
     "serve": "mm-snap serve",
     "start": "yarn build && mm-snap watch",
     "dev": "yarn build && nodemon --watch src/ --ext ts --ignore src/wasm.ts --exec 'yarn serve'",
-    "build": "yarn clean && yarn build:wasm && yarn build:tsc && mm-snap build --verboseErrors && cp snap.manifest.json dist/",
+    "build": "yarn clean && yarn build:tsc && mm-snap build --verboseErrors && cp snap.manifest.json dist/",
     "build:tsc": "tsc",
-    "build:wasm": "node ./scripts/wasm-encode.js && du src/wasm_*",
     "build:clean": "rm -rf node_modules/wasm-bundler && yarn install --check-files && yarn clean && yarn build",
     "clean": "rimraf dist build",
     "lint": "yarn lint:eslint && yarn lint:misc --check",
@@ -51,8 +49,8 @@
     "prettier": "^2.2.1",
     "prettier-plugin-packagejson": "^2.2.11",
     "rimraf": "^3.0.2",
-    "typescript": "^4.7.4",
-    "wasm-bundler": "../../rust-rng/pkg"
+    "rust-rng": "../../rust-rng/dist",
+    "typescript": "^4.7.4"
   },
   "packageManager": "yarn@3.2.1",
   "engines": {

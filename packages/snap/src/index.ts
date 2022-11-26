@@ -1,18 +1,11 @@
 import { OnRpcRequestHandler } from '@metamask/snap-types';
-
-import initWasm from '../../../rust-rng/dist/index';
-
-let wasm;
-
+import { init } from '../../../rust-rng/dist/rust_rng';
 
 export const onRpcRequest: OnRpcRequestHandler = async ({
   origin,
   request,
 }) => {
-  if (!wasm) {
-    wasm = await initWasm();
-  }
-
+  let wasm = await init();
   console.log({ request });
 
   switch (request.method) {

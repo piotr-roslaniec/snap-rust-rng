@@ -15,7 +15,7 @@
   "author": "",
   "workspaces": [
     "packages/*",
-    "rust-rng/pkg"
+    "rust-rng/dist"
   ],
   "scripts": {
     "build": "yarn workspaces foreach --parallel --topological --verbose run build",
