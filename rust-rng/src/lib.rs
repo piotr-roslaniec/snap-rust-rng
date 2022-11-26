@@ -10,6 +10,12 @@ pub fn add_random_with_seed(left: u32, rng_seed: &[u8]) -> u32 {
     left + right
 }
 
+#[wasm_bindgen]
+pub fn add(left: u32, right: u32) -> u32 {
+    console_error_panic_hook::set_once();
+    left + right
+}
+
 // Uncomment in order to reproduce the original error
 // #[wasm_bindgen]
 pub fn add_random(left: u32) -> u32 {
